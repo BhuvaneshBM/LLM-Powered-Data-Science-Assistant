@@ -1,0 +1,33 @@
+# Virtual environment
+.venv/
+venv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environment variables (VERY IMPORTANT)
+.env
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Data files (optional - if large)
+data/
+datasets/
+
+# Model files (optional - large ML models)
+models/
+*.pkl
+*.joblib
+
+# UV lock temp files (keep uv.lock, ignore others if any temp)
