@@ -1,93 +1,171 @@
 # LLM-Powered Data Science Assistant
 
-This project provides a local AI assistant that can inspect the New York housing dataset and execute a broad set of data-science tools, including preprocessing, statistics, outlier handling, dimensionality reduction, and baseline ML model evaluation.
+An agentic data science assistant built with LangGraph, LangChain tools, and Gradio.
+It can profile a dataset, clean and transform data, run baseline ML models, perform dimensionality reduction, and save outputs.
 
-## What is included
+The app supports two interaction modes:
+- CLI chat via main.py
+- Web UI via gradio_app.py with optional CSV upload and dataset hot-swap
 
-- `main.py`: runnable CLI entrypoint
-- `models/agent.py`: LangGraph + Gemini tool-calling agent
-- `utils/dataset_manager.py`: dataset path resolution and loading
-- `utils/data_tools.py`: full notebook-derived data-science toolkit
-- `main.ipynb`: notebook workflow for local testing
-- `data/`: local dataset location (`NY-House-Dataset.csv`)
+## Features
 
-## Toolkit capabilities
+- LangGraph tool-calling agent with memory checkpointing
+- Provider routing with environment-based selection:
+	- Gemini (ChatGoogleGenerativeAI)
+	- Groq (ChatGroq)
+- Dataset-aware system grounding (agent knows active dataset shape and columns)
+- CSV/TSV/TXT upload in Gradio and runtime toolkit reload
+- Data science tools for:
+	- profiling and schema checks
+	- missing values and outlier handling
+	- encoding/scaling/feature engineering
+	- baseline classification and regression
+	- PCA/t-SNE/UMAP
+	- exporting CSVs and plots
 
-- Data profiling: schema, dtypes, per-column stats, missing values, data type detection
-- Data cleaning/transformation: missing value handling, categorical encoding, scaling
-- Feature engineering: variance/correlation feature selection, polynomial features
-- Analysis: outlier detection, distribution analysis, dataset operations helper
-- Modeling: baseline classification and regression cross-validation
-- Dimensionality reduction: PCA, t-SNE, UMAP
-- Export: save current transformed dataframe to CSV
+## Project layout
 
-## Prerequisites
+- main.py: CLI entrypoint
+- gradio_app.py: Gradio interface and upload flow
+- models/agent.py: LangGraph graph, provider selection, tool registry
+- utils/data_tools.py: DataScienceToolkit implementation
+- utils/dataset_manager.py: dataset resolution and upload parsing
+- config.py: default provider/model settings, output paths, prompt/config values
+- data/: optional local dataset storage
+- outputs/: generated plots, reports, models, logs
+
+## Requirements
 
 - Python 3.12+
-- A Gemini API key
+- One LLM provider credential:
+	- GOOGLE_API_KEY for Gemini
+	- GROQ_API_KEY for Groq
 
 ## Setup
 
-1. Create and activate a virtual environment (if not already active).
-2. Install dependencies:
+Recommended (uv):
 
 ```powershell
+uv venv --clear
+uv sync
+```
+
+Alternative (pip):
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\activate
 pip install -e .
 ```
 
-3. Configure environment variables (recommended via `.env`):
+## Environment variables
+
+Create a .env file in the project root.
+
+Core settings:
 
 ```env
-GOOGLE_API_KEY=your_key_here
+# Provider selection: gemini or groq
+LLM_PROVIDER=gemini
+
+# Gemini
+GOOGLE_API_KEY=your_google_key
+GEMINI_MODEL=gemini-2.5-flash-lite
+
+# Groq
+GROQ_API_KEY=your_groq_key
+GROQ_MODEL=llama-3.1-8b-instant
+GROQ_MAX_TOKENS=1024
+
+# Optional tracing
 LANGCHAIN_API_KEY=optional_langsmith_key
 LANGCHAIN_ENDPOINT=https://api.smith.langchain.com
 LANGCHAIN_TRACING_V2=true
 LANGCHAIN_PROJECT=AutoML-Hackathon
+
+# Optional: force a local dataset path
+# DATASET_PATH=C:/path/to/your/data.csv
+
+# Optional Gradio port override
+# GRADIO_SERVER_PORT=7860
 ```
 
-4. Dataset handling:
-- If `data/NY-House-Dataset.csv` exists, it is used directly.
-- Otherwise, the app downloads the dataset using KaggleHub.
+## Dataset loading behavior
 
-## Run from terminal
+The default dataset is resolved in this order:
+
+1. DATASET_PATH if set and valid
+2. data/NY-House-Dataset.csv
+3. KaggleHub fallback (new-york-housing-market)
+
+In Gradio, uploading a CSV/TSV/TXT replaces the active toolkit at runtime using reload_toolkit, so new prompts operate on the uploaded file immediately.
+
+## Run the app
+
+CLI:
 
 ```powershell
-python main.py
+uv run python main.py
 ```
 
-## Run Gradio UI
-
-```powershell
-python gradio_app.py
-```
-
-Or with uv:
+Gradio UI:
 
 ```powershell
 uv run python gradio_app.py
 ```
 
-The app launches at `http://127.0.0.1:7860` by default.
+Default URL:
 
-Example prompts:
-- `What columns are present in this dataset?`
-- `Check missing values for all columns.`
-- `Evaluate regression baselines for PRICE.`
-- `Run classification baselines for BEDS.`
-- `Apply minmax scaling on numeric features.`
-- `Do PCA with 2 components.`
+- http://0.0.0.0:7860
 
-## Run in notebook
+## Example prompts
 
-Open `main.ipynb` and run cells top-to-bottom.
+- What is the structure of this dataset?
+- Check missing values across all columns.
+- Get column stats for PRICE.
+- Evaluate baseline regression models for PRICE.
+- Run baseline classification models for BEDS.
+- Detect and handle outliers in all numeric columns.
+- Apply PCA with 2 components and visualize.
 
-- Cell 1: environment + path setup
-- Cell 2: dataset load + toolkit init
-- Cell 3: quick dataset metadata
-- Cell 4: helper function to query the assistant
-- Cell 5: sample assistant questions
+## Outputs
+
+Generated artifacts are saved under outputs/:
+
+- outputs/plots
+- outputs/reports
+- outputs/models
+- outputs/logs
+
+Directories are auto-created at startup by config.ensure_output_directories().
 
 ## Troubleshooting
 
-- `GOOGLE_API_KEY is required`: set your API key in `.env` or shell environment.
-- Dataset download issues: place `NY-House-Dataset.csv` manually in `data/`.
+- Error: module 'config' has no attribute 'DEFAULT_MODEL'
+	- Cause: stale local install or mixed interpreter/path state.
+	- Fix:
+
+```powershell
+uv sync
+uv run python -c "import config; print(config.__file__); print(hasattr(config, 'DEFAULT_MODEL'))"
+```
+
+	- The printed config path should point to this project directory and DEFAULT_MODEL should print True.
+
+- GOOGLE_API_KEY is required when LLM_PROVIDER=gemini
+	- Set GOOGLE_API_KEY in .env or switch LLM_PROVIDER=groq with a valid GROQ_API_KEY.
+
+- GROQ_API_KEY is required when LLM_PROVIDER=groq
+	- Set GROQ_API_KEY (and optionally GROQ_MODEL/GROQ_MAX_TOKENS).
+
+- Dataset cannot be found
+	- Provide DATASET_PATH, place NY-House-Dataset.csv in data/, or configure Kaggle credentials.
+
+- Gradio does not start on 7860
+	- Set GRADIO_SERVER_PORT to an open port and rerun.
+
+## Notes
+
+- .env is gitignored. Keep keys private.
+- uv.lock is tracked for reproducible environments.
+- main.ipynb can be used for iterative local experimentation.
