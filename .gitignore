@@ -1,33 +1,206 @@
-# Virtual environment
+# ============================================================================
+# VIRTUAL ENVIRONMENTS
+# ============================================================================
 .venv/
 venv/
+env/
+ENV/
+.env.venv/
+pip-log.txt
+pip-delete-this-directory.txt
 
-# Python cache
+
+# ============================================================================
+# PYTHON CACHE & BUILD
+# ============================================================================
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
 
-# Environment variables (VERY IMPORTANT)
+
+# ============================================================================
+# ENVIRONMENT & SECRETS (CRITICAL - API KEYS)
+# ============================================================================
 .env
+.env.local
+.env.*.local
+!.env.example
+!.env.template
 
-# Jupyter Notebook checkpoints
-.ipynb_checkpoints/
 
-# OS files
+# ============================================================================
+# IDE & EDITOR FILES
+# ============================================================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 .DS_Store
 Thumbs.db
+.code-workspace
+*.sublime-project
+*.sublime-workspace
+.vim/
 
-# Logs
+
+# ============================================================================
+# JUPYTER NOTEBOOKS
+# ============================================================================
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+
+pyproject.toml
+# ============================================================================
+# LOGS & DEBUG
+# ============================================================================
 *.log
+*.logs
+debug.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pytest_cache/
+.coverage
+htmlcov/
+.hypothesis/
 
-# Data files (optional - if large)
-data/
+
+# ============================================================================
+# TYPE CHECKING
+# ============================================================================
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+
+
+# ============================================================================
+# MODEL & DATA FILES (Generated/Large)
+# ============================================================================
+# Data files (exclude from repo, keep directory structure)
+data/*.csv
+data/*.xlsx
+data/*.json
+data/*.parquet
 datasets/
 
-# Model files (optional - large ML models)
-models/
+# Model artifacts & weights
 *.pkl
+*.pickle
 *.joblib
+*.h5
+*.hdf5
+*.pth
+*.model
+*.pt
+*.pb
+*.onnx
+*.weights
 
-# UV lock temp files (keep uv.lock, ignore others if any temp)
+# Generated outputs (keep README and directory structure)
+outputs/plots/*
+outputs/models/*
+outputs/reports/*
+outputs/logs/*
+!outputs/plots/.gitkeep
+!outputs/models/.gitkeep
+!outputs/reports/.gitkeep
+!outputs/logs/.gitkeep
+!outputs/README.md
+
+
+# ============================================================================
+# BACKUP & TEMPORARY FILES
+# ============================================================================
+*.bak
+*.backup
+*.tmp
+*.temp
+*~
+*.swp
+.tmp/
+temp/
+
+
+# ============================================================================
+# OS SPECIFIC
+# ============================================================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+
+# Windows
+Thumbs.db
+$RECYCLE.BIN/
+ehthumbs.db
+Desktop.ini
+
+# Linux
+.directory
+
+
+# ============================================================================
+# PROJECT SPECIFIC
+# ============================================================================
+# Jupyter notebook temporary execution files
+.jupyterlab/
+.jupyter/
+
+# Kaggle cache
+.kaggle/
+kaggle.json
+
+# Gradio outputs
+gradio_cached_examples/
+gradio_queued_data/
+
+# Langgraph debugger
+.langgraph_debug/
+
+# UV package manager (keep uv.lock, ignore temp files)
+uv.lock.tmp
+.uv/
+
+
+# ============================================================================
+# MISCELLANEOUS
+# ============================================================================
+.cache/
+.venv.bak/
+dist-newstyle/
+.stack-work/
+*.deb
+*.rpm
+.coverage.*
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
