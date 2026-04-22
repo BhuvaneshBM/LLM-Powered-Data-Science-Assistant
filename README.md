@@ -114,9 +114,6 @@ Gradio UI:
 uv run python gradio_app.py
 ```
 
-Default URL:
-
-- http://0.0.0.0:7860
 
 ## Example prompts
 
@@ -139,30 +136,6 @@ Generated artifacts are saved under outputs/:
 
 Directories are auto-created at startup by config.ensure_output_directories().
 
-## Troubleshooting
-
-- Error: module 'config' has no attribute 'DEFAULT_MODEL'
-	- Cause: stale local install or mixed interpreter/path state.
-	- Fix:
-
-```powershell
-uv sync
-uv run python -c "import config; print(config.__file__); print(hasattr(config, 'DEFAULT_MODEL'))"
-```
-
-	- The printed config path should point to this project directory and DEFAULT_MODEL should print True.
-
-- GOOGLE_API_KEY is required when LLM_PROVIDER=gemini
-	- Set GOOGLE_API_KEY in .env or switch LLM_PROVIDER=groq with a valid GROQ_API_KEY.
-
-- GROQ_API_KEY is required when LLM_PROVIDER=groq
-	- Set GROQ_API_KEY (and optionally GROQ_MODEL/GROQ_MAX_TOKENS).
-
-- Dataset cannot be found
-	- Provide DATASET_PATH, place NY-House-Dataset.csv in data/, or configure Kaggle credentials.
-
-- Gradio does not start on 7860
-	- Set GRADIO_SERVER_PORT to an open port and rerun.
 
 ## Notes
 
