@@ -13,7 +13,7 @@ from typing import Any, Dict
 DEFAULT_PROVIDER = "groq"
 """Default LLM provider: groq or gemini."""
 
-DEFAULT_MODEL = "gemini-1.5-flash"
+DEFAULT_MODEL = "gemini-2.5-flash-lite"
 """Default Gemini model to use for the agent."""
 
 DEFAULT_GROQ_MODEL = "llama-3.1-8b-instant"

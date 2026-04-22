@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from uuid import uuid4
 
 import gradio as gr
@@ -19,7 +20,6 @@ logger = logging.getLogger(__name__)
 # ============================================================================
 
 def _extract_assistant_text(result: dict) -> str:
-    """Extract assistant text robustly from LangGraph result messages."""
     responses: list[str] = []
     for msg in result.get("messages", []):
         msg_type = getattr(msg, "type", "")
@@ -38,14 +38,12 @@ def _extract_assistant_text(result: dict) -> str:
                 text = str(content).strip()
                 if text:
                     responses.append(text)
-
     if responses:
         return "\n\n".join(responses)
     return "I could not generate a response for that request."
 
 
 def _ask_agent(message: str, thread_id: str) -> str:
-    """Call the AutoML agent and return a user-friendly response string."""
     if not message.strip():
         return "Please enter a question."
     try:
@@ -61,22 +59,17 @@ def _new_thread_id() -> str:
 
 
 def _smart_examples(columns: list[str]) -> list[str]:
-    """Generate context-aware example prompts based on column names."""
     cols_lower = {c.lower(): c for c in columns}
-
-    # Try to find numeric columns that look like good targets
     numeric_hints = ["price", "salary", "revenue", "age", "score", "value",
                      "amount", "cost", "sales", "income", "fare", "rate"]
     categorical_hints = ["type", "category", "class", "status", "gender",
                          "species", "label", "grade", "region", "country"]
-
     regression_target = next(
         (cols_lower[h] for h in numeric_hints if h in cols_lower), columns[0]
     )
     classification_target = next(
         (cols_lower[h] for h in categorical_hints if h in cols_lower), columns[-1]
     )
-
     return [
         "What is the structure of this dataset?",
         "Check missing values across all columns.",
@@ -93,25 +86,18 @@ def _smart_examples(columns: list[str]) -> list[str]:
 # ============================================================================
 
 def handle_upload(file_obj):
-    """Process an uploaded CSV file and reload the agent toolkit.
-
-    Returns:
-        (status_markdown, updated_examples_list, new_thread_id)
-    """
     if file_obj is None:
-        return "No file uploaded.", gr.update(), _new_thread_id()
-
+        return "No file uploaded.", _new_thread_id()
     try:
-        df, status = load_dataframe_from_upload(file_obj.name)
+        file_path = file_obj if isinstance(file_obj, str) else file_obj.name
+        df, status = load_dataframe_from_upload(file_path)
         reload_toolkit(df)
-        examples = _smart_examples(df.columns.tolist())
-        thread_id = _new_thread_id()
-        return status, gr.update(value=examples), thread_id
+        return status, _new_thread_id()
     except ValueError as exc:
-        return f"Upload failed: {exc}", gr.update(), _new_thread_id()
+        return f"Upload failed: {exc}", _new_thread_id()
     except Exception as exc:
         logger.error("Unexpected upload error: %s", exc)
-        return f"Unexpected error: {exc}", gr.update(), _new_thread_id()
+        return f"Unexpected error: {exc}", _new_thread_id()
 
 
 # ============================================================================
@@ -128,7 +114,7 @@ def build_demo() -> gr.Blocks:
         "Apply PCA with 2 components and visualize.",
     ]
 
-    with gr.Blocks(title="LLM-Powered Data Science Assistant", theme=gr.themes.Soft()) as demo:
+    with gr.Blocks(title="LLM-Powered Data Science Assistant") as demo:
 
         gr.Markdown("# LLM-Powered Data Science Assistant")
         gr.Markdown(
@@ -137,7 +123,6 @@ def build_demo() -> gr.Blocks:
             "runs preprocessing, evaluates models, and saves outputs."
         )
 
-        # ── Dataset panel ──────────────────────────────────────────────────
         with gr.Row():
             with gr.Column(scale=2):
                 upload = gr.File(
@@ -153,8 +138,7 @@ def build_demo() -> gr.Blocks:
 
         gr.Markdown("---")
 
-        # ── Chat panel ─────────────────────────────────────────────────────
-        chatbot = gr.Chatbot(label="Assistant", height=420, type="messages")
+        chatbot = gr.Chatbot(label="Assistant", height=420)
 
         with gr.Row():
             user_input = gr.Textbox(
@@ -168,16 +152,19 @@ def build_demo() -> gr.Blocks:
             clear_btn = gr.Button("Clear chat")
             reset_btn = gr.Button("New session")
 
-        example_list = gr.Dataset(
-            components=[gr.Textbox(visible=False)],
-            samples=[[e] for e in default_examples],
-            label="Example prompts (click to use)",
-            type="index",
-        )
+        gr.Markdown("**Example prompts** (click to fill):")
+        with gr.Row():
+            btn0 = gr.Button(default_examples[0], size="sm")
+            btn1 = gr.Button(default_examples[1], size="sm")
+            btn2 = gr.Button(default_examples[2], size="sm")
+        with gr.Row():
+            btn3 = gr.Button(default_examples[3], size="sm")
+            btn4 = gr.Button(default_examples[4], size="sm")
+            btn5 = gr.Button(default_examples[5], size="sm")
 
         thread_id = gr.State(_new_thread_id())
 
-        # ── Event handlers ─────────────────────────────────────────────────
+        # ── Event handlers ──────────────────────────────────────────────────
 
         def _chat_fn(message: str, history: list, current_thread_id: str):
             if not message.strip():
@@ -188,41 +175,20 @@ def build_demo() -> gr.Blocks:
             history.append({"role": "assistant", "content": answer})
             return history, ""
 
-        def _on_example_click(evt: gr.SelectData, current_examples):
-            """Fill textbox when user clicks an example."""
-            idx = evt.index
-            if isinstance(current_examples, list) and idx < len(current_examples):
-                row = current_examples[idx]
-                return row[0] if isinstance(row, list) else row
-            return ""
+        upload.upload(fn=handle_upload, inputs=[upload], outputs=[upload_status, thread_id])
 
-        def _reset_session():
-            return _new_thread_id()
+        send_btn.click(fn=_chat_fn, inputs=[user_input, chatbot, thread_id], outputs=[chatbot, user_input])
+        user_input.submit(fn=_chat_fn, inputs=[user_input, chatbot, thread_id], outputs=[chatbot, user_input])
 
-        # Upload triggers toolkit reload and example refresh
-        upload.upload(
-            fn=handle_upload,
-            inputs=[upload],
-            outputs=[upload_status, example_list, thread_id],
-        )
+        btn0.click(fn=lambda: default_examples[0], outputs=[user_input])
+        btn1.click(fn=lambda: default_examples[1], outputs=[user_input])
+        btn2.click(fn=lambda: default_examples[2], outputs=[user_input])
+        btn3.click(fn=lambda: default_examples[3], outputs=[user_input])
+        btn4.click(fn=lambda: default_examples[4], outputs=[user_input])
+        btn5.click(fn=lambda: default_examples[5], outputs=[user_input])
 
-        send_btn.click(
-            fn=_chat_fn,
-            inputs=[user_input, chatbot, thread_id],
-            outputs=[chatbot, user_input],
-        )
-        user_input.submit(
-            fn=_chat_fn,
-            inputs=[user_input, chatbot, thread_id],
-            outputs=[chatbot, user_input],
-        )
-        example_list.click(
-            fn=_on_example_click,
-            inputs=[example_list],
-            outputs=[user_input],
-        )
         clear_btn.click(fn=lambda: [], outputs=[chatbot])
-        reset_btn.click(fn=_reset_session, outputs=[thread_id])
+        reset_btn.click(fn=lambda: _new_thread_id(), outputs=[thread_id])
         reset_btn.click(fn=lambda: [], outputs=[chatbot])
 
     return demo
@@ -236,7 +202,6 @@ def main() -> None:
     load_dotenv()
     config.ensure_output_directories()
 
-    # Pre-load default dataset so the first message is fast
     try:
         ensure_toolkit()
         logger.info("Default dataset loaded successfully.")
@@ -244,7 +209,12 @@ def main() -> None:
         logger.warning("Default dataset not found (%s). Upload a CSV to begin.", exc)
 
     demo = build_demo()
-    demo.launch(server_name="0.0.0.0", server_port=7860)
+    port = int(os.getenv("GRADIO_SERVER_PORT", "7860"))
+    demo.launch(
+        server_name="0.0.0.0",
+        server_port=port,
+        theme=gr.themes.Soft(font=[gr.themes.GoogleFont("JetBrains Mono"), "monospace"]),
+    )
 
 
 if __name__ == "__main__":
